@@ -1,0 +1,23 @@
+# 依赖
+node_modules/
+
+# 打包产物与内置运行时(体积大,可由构建脚本重新生成)
+release/
+resources/node/
+resources/runtime/
+
+# 日志与临时文件
+*.log
+*.pid
+
+# 敏感信息:API Key / 凭据 / 环境变量
+.dsh/
+.credentials.yaml
+*.credentials.yaml
+.env
+.env.*
+
+# 系统文件
+Thumbs.db
+Desktop.ini
+.DS_Store

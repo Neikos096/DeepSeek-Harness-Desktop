@@ -1,0 +1,49 @@
+{
+  "name": "deepseek-harness-desktop",
+  "version": "1.0.0",
+  "description": "DeepSeek Harness 桌面版 - 将 deepseek-harness 封装为本地桌面应用",
+  "author": "DeepSeek Harness Desktop",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Neikos096/DeepSeek-Harness-Desktop.git"
+  },
+  "homepage": "https://github.com/Neikos096/DeepSeek-Harness-Desktop",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win"
+  },
+  "devDependencies": {
+    "electron": "^37.2.0",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "com.deepseek.harness.desktop",
+    "productName": "DeepSeek Harness 桌面版",
+    "afterPack": "scripts/after-pack.cjs",
+    "files": [
+      "main.js",
+      "preload.js",
+      "assets/**",
+      "pages/**"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "include": "scripts/installer.nsh",
+      "shortcutName": "DeepSeek Harness 桌面版"
+    }
+  }
+}
