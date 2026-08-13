@@ -4,6 +4,7 @@ const net = require('node:net')
 const fs = require('node:fs')
 const path = require('node:path')
 const os = require('node:os')
+const credentials = require('./credentials')
 
 // ---------------------------------------------------------------------------
 // 路径与配置
@@ -19,6 +20,8 @@ let serverProc = null
 let serverPort = 0
 let mainWindow = null
 let loadingWindow = null
+let loginWindow = null
+let bootStarted = false
 let logs = []
 
 // 运行模式:打包版(安装包)自带 Node 与编译好的 harness;
@@ -118,6 +121,41 @@ function createLoadingWindow() {
   loadingWindow.loadFile(path.join(__dirname, 'pages', 'loading.html'))
   loadingWindow.once('ready-to-show', () => loadingWindow.show())
   loadingWindow.on('closed', () => { loadingWindow = null })
+}
+
+function createLoginWindow() {
+  loginWindow = new BrowserWindow({
+    width: 480,
+    height: 640,
+    resizable: false,
+    show: false,
+    backgroundColor: '#0b1320',
+    title: '登录 DeepSeek Harness',
+    icon: path.join(__dirname, 'assets', 'icon.png'),
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true
+    }
+  })
+  loginWindow.setMenuBarVisibility(false)
+  loginWindow.loadFile(path.join(__dirname, 'pages', 'login.html'))
+  loginWindow.once('ready-to-show', () => loginWindow.show())
+  loginWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (url.startsWith('http://') || url.startsWith('https://')) shell.openExternal(url)
+    return { action: 'deny' }
+  })
+  loginWindow.webContents.on('will-navigate', (event, url) => {
+    if (!url.startsWith('file://')) {
+      event.preventDefault()
+      if (url.startsWith('http://') || url.startsWith('https://')) shell.openExternal(url)
+    }
+  })
+  loginWindow.on('closed', () => {
+    loginWindow = null
+    if (!bootStarted) app.quit()
+  })
 }
 
 function createMainWindow() {
@@ -264,14 +302,35 @@ if (!gotLock) {
 
   app.whenReady().then(async () => {
     ipcMain.on('quit', () => app.quit())
-    createLoadingWindow()
-    try {
-      await startHarness()
-      createMainWindow()
-    } catch (err) {
-      log(`启动失败: ${err.message}`)
-      if (loadingWindow && !loadingWindow.isDestroyed()) loadingWindow.close()
-      showFatalError('启动失败', err.message)
+
+    const bootApp = async () => {
+      bootStarted = true
+      createLoadingWindow()
+      try {
+        await startHarness()
+        createMainWindow()
+      } catch (err) {
+        log(`启动失败: ${err.message}`)
+        if (loadingWindow && !loadingWindow.isDestroyed()) loadingWindow.close()
+        showFatalError('启动失败', err.message)
+      }
+    }
+
+    ipcMain.handle('has-api-key', () => credentials.hasApiKey())
+    ipcMain.handle('save-api-key', (_event, key) => {
+      credentials.saveApiKey(key)
+      log('API Key 已保存(仅保存在本机)')
+      bootStarted = true
+      if (loginWindow && !loginWindow.isDestroyed()) loginWindow.close()
+      loginWindow = null
+      bootApp()
+      return { ok: true }
+    })
+
+    if (credentials.hasApiKey()) {
+      bootApp()
+    } else {
+      createLoginWindow()
     }
   })
 

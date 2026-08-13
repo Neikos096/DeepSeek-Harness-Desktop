@@ -1,6 +1,6 @@
 {
   "name": "deepseek-harness-desktop",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "DeepSeek Harness 桌面版 - 将 deepseek-harness 封装为本地桌面应用",
   "author": "DeepSeek Harness Desktop",
   "license": "MIT",
@@ -26,6 +26,7 @@
     "files": [
       "main.js",
       "preload.js",
+      "credentials.js",
       "assets/**",
       "pages/**"
     ],
@@ -45,5 +46,8 @@
       "include": "scripts/installer.nsh",
       "shortcutName": "DeepSeek Harness 桌面版"
     }
+  },
+  "dependencies": {
+    "yaml": "^2.9.0"
   }
 }

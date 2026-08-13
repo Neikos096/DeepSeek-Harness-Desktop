@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>登录 DeepSeek Harness</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+      background: radial-gradient(circle at 50% 20%, #12233d 0%, #0b1320 72%);
+      color: #e8eef7; min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      -webkit-user-select: none; user-select: none;
+    }
+    .card {
+      width: 440px; max-width: 92vw;
+      background: rgba(16, 27, 44, 0.85);
+      border: 1px solid #1e3248; border-radius: 16px;
+      padding: 40px 38px 32px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+    }
+    .logo {
+      width: 64px; height: 64px; border-radius: 16px; margin: 0 auto 18px;
+      background: linear-gradient(135deg, #4d7cfe 0%, #2563eb 55%, #1d4ed8 100%);
+      display: flex; align-items: center; justify-content: center;
+      padding: 9px; box-shadow: 0 8px 28px rgba(37, 99, 235, 0.4);
+    }
+    .logo img { width: 100%; height: 100%; }
+    h1 { font-size: 20px; font-weight: 600; text-align: center; margin-bottom: 8px; }
+    .sub { font-size: 13px; color: #93a7c4; text-align: center; line-height: 1.7; margin-bottom: 26px; }
+    label { display: block; font-size: 13px; color: #b8c7dd; margin-bottom: 8px; }
+    .input-wrap { position: relative; }
+    input[type=password], input[type=text] {
+      width: 100%; padding: 12px 14px; border-radius: 10px;
+      border: 1px solid #27405f; background: #0a111d; color: #e8eef7;
+      font-size: 14px; font-family: Consolas, monospace; outline: none;
+    }
+    input:focus { border-color: #4d7cfe; box-shadow: 0 0 0 3px rgba(77, 124, 254, 0.2); }
+    .eye {
+      position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; color: #7d95b8; cursor: pointer; font-size: 14px;
+    }
+    .error { color: #ff6b6b; font-size: 12px; min-height: 18px; margin: 8px 2px 4px; }
+    button.save {
+      width: 100%; padding: 12px; border: none; border-radius: 10px; cursor: pointer;
+      background: linear-gradient(135deg, #4d7cfe 0%, #2563eb 100%);
+      color: #fff; font-size: 15px; font-weight: 600; margin-top: 6px;
+    }
+    button.save:hover { filter: brightness(1.08); }
+    button.save:disabled { opacity: 0.6; cursor: not-allowed; }
+    .hint {
+      margin-top: 18px; text-align: center; font-size: 12px; color: #93a7c4;
+    }
+    .hint a {
+      color: #6ea0ff; text-decoration: underline; cursor: pointer;
+    }
+    .hint a:hover { color: #9dbdff; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo"><img src="../assets/whale-white.png" alt="DeepSeek"></div>
+    <h1>欢迎使用 DeepSeek Harness</h1>
+    <div class="sub">首次使用需要配置 DeepSeek API Key<br>Key 仅保存在本机,不会上传到任何服务器</div>
+    <label for="apikey">DeepSeek API Key</label>
+    <div class="input-wrap">
+      <input type="password" id="apikey" placeholder="sk-..." autocomplete="off" spellcheck="false">
+      <button class="eye" id="eye" type="button" title="显示/隐藏">👁</button>
+    </div>
+    <div class="error" id="error"></div>
+    <button class="save" id="save" type="button">开始使用</button>
+    <div class="hint">没有 api key? <a id="getkey" href="https://platform.deepseek.com/api_keys">点击此处前往获取</a></div>
+  </div>
+  <script>
+    const input = document.getElementById('apikey')
+    const eye = document.getElementById('eye')
+    const error = document.getElementById('error')
+    const save = document.getElementById('save')
+    const getkey = document.getElementById('getkey')
+
+    eye.addEventListener('click', () => {
+      const show = input.type === 'password'
+      input.type = show ? 'text' : 'password'
+      eye.textContent = show ? '🙈' : '👁'
+    })
+
+    getkey.addEventListener('click', (e) => {
+      e.preventDefault()
+      window.open('https://platform.deepseek.com/api_keys', '_blank')
+    })
+
+    async function submit() {
+      const key = input.value.trim()
+      if (!key) {
+        error.textContent = '请输入 API Key'
+        input.focus()
+        return
+      }
+      save.disabled = true
+      error.textContent = ''
+      try {
+        await window.dshDesktop.saveApiKey(key)
+        save.textContent = '配置成功,正在启动...'
+      } catch (err) {
+        error.textContent = '保存失败:' + (err.message || '未知错误')
+        save.disabled = false
+        save.textContent = '开始使用'
+      }
+    }
+
+    save.addEventListener('click', submit)
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit() })
+    input.focus()
+  </script>
+</body>
+</html>

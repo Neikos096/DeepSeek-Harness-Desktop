@@ -70,6 +70,8 @@ powershell -ExecutionPolicy Bypass -File scripts\build-installer.ps1
 3. 点击 **选择工作区**,添加你希望让 agent 操作的文件夹;
 4. 在会话输入框中下达任务即可(agent 可以读写文件、执行命令、维护计划,敏感操作会先征求同意)。
 
+**v1.1.0 新增**:首次打开(未配置 API Key 时)会弹出登录页,直接输入 DeepSeek API Key 即可开始使用;页面下方提供"没有 api key? 点击此处前往获取"链接,点击跳转 DeepSeek 官方密钥管理页。Key 只保存在本机 `~/.dsh/.credentials.yaml`,与官方设置页使用同一存储,不经过任何第三方。
+
 ## 常见问题
 
 - **启动时报"未找到 harness 运行环境"**:确认 `deepseek-harness` 与桌面版在同一目录,并已执行 `pnpm install`、`pnpm run build`;也可以设置环境变量 `DSH_DESKTOP_HARNESS_DIR` 指向源码目录。
