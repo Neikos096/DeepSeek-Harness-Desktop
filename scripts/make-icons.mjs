@@ -26,6 +26,24 @@ const whiteSvg = svgWith('#ffffff')
 const white256 = await sharp(Buffer.from(whiteSvg)).resize(256, 256).png().toBuffer()
 fs.writeFileSync(path.join(assets, 'whale-white.png'), white256)
 
+// 手机端 PWA 图标:蓝色圆角底 + 白色鲸鱼
+const whalePath = svg.match(/d="([^"]+)"/)[1]
+const pwaTile = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#4d7cfe"/><stop offset="0.55" stop-color="#2563eb"/><stop offset="1" stop-color="#1d4ed8"/>
+  </linearGradient></defs>
+  <rect width="512" height="512" rx="116" fill="url(#g)"/>
+  <g transform="translate(102.5 102.5) scale(6.14)" fill="#ffffff">
+    <path d="${whalePath}"/>
+  </g>
+</svg>`
+const pwaDir = path.join(assets, 'pwa')
+fs.mkdirSync(pwaDir, { recursive: true })
+for (const size of [180, 192, 512]) {
+  const buf = await sharp(Buffer.from(pwaTile)).resize(size, size).png().toBuffer()
+  fs.writeFileSync(path.join(pwaDir, `icon-${size}.png`), buf)
+}
+
 // 多尺寸 ICO(全部内嵌 PNG,Windows Vista+ 支持)
 const sizes = [16, 24, 32, 48, 64, 128, 256]
 const pngs = []

@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b1320">
+  <link rel="manifest" href="/pwa/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/pwa/icon-180.png">
+  <title>连接 DeepSeek Harness</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, 'Microsoft YaHei', 'PingFang SC', sans-serif;
+      background: radial-gradient(circle at 50% 18%, #12233d 0%, #0b1320 72%);
+      color: #e8eef7; min-height: 100vh; min-height: 100dvh;
+      display: flex; align-items: center; justify-content: center; padding: 24px;
+    }
+    .card {
+      width: 100%; max-width: 420px;
+      background: rgba(16, 27, 44, 0.9);
+      border: 1px solid #1e3248; border-radius: 18px;
+      padding: 34px 28px 26px; box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+    }
+    .logo {
+      width: 64px; height: 64px; border-radius: 16px; margin: 0 auto 16px;
+      background: linear-gradient(135deg, #4d7cfe 0%, #2563eb 55%, #1d4ed8 100%);
+      display: flex; align-items: center; justify-content: center; padding: 9px;
+    }
+    .logo img { width: 100%; height: 100%; }
+    h1 { font-size: 20px; font-weight: 600; text-align: center; margin-bottom: 6px; }
+    .sub { font-size: 13px; color: #93a7c4; text-align: center; line-height: 1.7; margin-bottom: 22px; }
+    label { display: block; font-size: 13px; color: #b8c7dd; margin-bottom: 8px; }
+    input {
+      width: 100%; padding: 12px 14px; border-radius: 10px; font-size: 16px;
+      border: 1px solid #27405f; background: #0a111d; color: #e8eef7; outline: none;
+    }
+    input:focus { border-color: #4d7cfe; }
+    .error { color: #ff6b6b; font-size: 13px; min-height: 20px; margin: 8px 2px 4px; }
+    button {
+      width: 100%; padding: 13px; border: none; border-radius: 10px; cursor: pointer;
+      background: linear-gradient(135deg, #4d7cfe 0%, #2563eb 100%);
+      color: #fff; font-size: 16px; font-weight: 600; margin-top: 4px;
+    }
+    button:disabled { opacity: 0.6; }
+    .tip {
+      margin-top: 18px; font-size: 12px; color: #7d95b8; line-height: 1.7;
+      border-top: 1px solid #1e3248; padding-top: 14px;
+    }
+    .install { text-align: center; margin-top: 14px; font-size: 12px; color: #5b6f8e; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo"><img src="/pwa/icon-192.png" alt="DeepSeek"></div>
+    <h1>连接 DeepSeek Harness</h1>
+    <div class="sub">输入电脑端显示的访问口令,即可在手机上使用</div>
+    <form id="form" method="post" action="/login">
+      <label for="token">访问口令</label>
+      <input type="password" id="token" name="token" autocomplete="off" placeholder="请输入口令" required>
+      <div class="error">{{error}}</div>
+      <button type="submit" id="btn">连接</button>
+    </form>
+    <div class="tip">口令在电脑端任务栏鲸鱼图标的菜单里查看。仅建议在可信的 Wi-Fi 网络下使用。</div>
+    <div class="install">在浏览器菜单选择"添加到主屏幕",即可像 App 一样使用</div>
+  </div>
+  <script>
+    const form = document.getElementById('form')
+    form.addEventListener('submit', () => {
+      document.getElementById('btn').disabled = true
+      document.getElementById('btn').textContent = '连接中...'
+    })
+  </script>
+</body>
+</html>

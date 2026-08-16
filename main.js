@@ -1,10 +1,11 @@
-const { app, BrowserWindow, ipcMain, shell, dialog } = require('electron')
+const { app, BrowserWindow, ipcMain, shell, dialog, Tray, Menu, Notification, clipboard } = require('electron')
 const { spawn } = require('node:child_process')
 const net = require('node:net')
 const fs = require('node:fs')
 const path = require('node:path')
 const os = require('node:os')
 const credentials = require('./credentials')
+const mobileProxy = require('./mobile-proxy')
 
 // ---------------------------------------------------------------------------
 // 路径与配置
@@ -23,6 +24,24 @@ let loadingWindow = null
 let loginWindow = null
 let bootStarted = false
 let logs = []
+let tray = null
+let mobile = null
+
+// 手机访问设置(口令持久化在 ~/.dsh/desktop-mobile.json)
+const MOBILE_SETTINGS_FILE = path.join(credentials.dshHome(), 'desktop-mobile.json')
+
+function readMobileSettings() {
+  try {
+    return JSON.parse(fs.readFileSync(MOBILE_SETTINGS_FILE, 'utf8'))
+  } catch {
+    return {}
+  }
+}
+
+function writeMobileSettings(settings) {
+  fs.mkdirSync(credentials.dshHome(), { recursive: true })
+  fs.writeFileSync(MOBILE_SETTINGS_FILE, JSON.stringify(settings, null, 2))
+}
 
 // 运行模式:打包版(安装包)自带 Node 与编译好的 harness;
 // 开发版直接使用同级 deepseek-harness 源码目录。
@@ -208,6 +227,100 @@ function showFatalError(title, body) {
 }
 
 // ---------------------------------------------------------------------------
+// 手机访问(托盘控制)
+// ---------------------------------------------------------------------------
+
+function refreshTrayMenu() {
+  if (!tray) return
+  const on = mobile !== null
+  tray.setContextMenu(Menu.buildFromTemplate([
+    { label: on ? '手机访问:已开启' : '手机访问:已关闭', enabled: false },
+    on
+      ? { label: '关闭手机访问', click: () => stopMobile() }
+      : { label: '开启手机访问', click: () => startMobile() },
+    { label: '显示手机访问地址与口令', click: () => showMobileInfo() },
+    { type: 'separator' },
+    { label: '退出', click: () => app.quit() }
+  ]))
+}
+
+function ensureTray() {
+  if (tray) return
+  tray = new Tray(path.join(__dirname, 'assets', 'icon.png'))
+  tray.setToolTip('DeepSeek Harness 桌面版')
+  tray.on('click', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.focus()
+  })
+  refreshTrayMenu()
+}
+
+async function startMobile() {
+  if (mobile) return
+  if (!serverPort) {
+    log('请等待 harness 启动完成后再开启手机访问')
+    return
+  }
+  const settings = readMobileSettings()
+  const token = settings.token || mobileProxy.generateToken()
+  const port = Number(process.env.DSH_DESKTOP_MOBILE_PORT || 3088)
+  try {
+    mobile = await mobileProxy.startMobileProxy({
+      harnessPort: serverPort,
+      token,
+      listenPort: port,
+      pagesDir: path.join(__dirname, 'pages'),
+      pwaDir: path.join(__dirname, 'assets', 'pwa'),
+      onLog: (m) => log(m)
+    })
+    writeMobileSettings({ ...settings, token, enabled: true })
+    refreshTrayMenu()
+    const url = `http://${mobileProxy.lanAddresses()[0] || '127.0.0.1'}:${mobile.port}`
+    if (Notification.isSupported()) {
+      new Notification({
+        title: '手机访问已开启',
+        body: `${url}  口令: ${token}`
+      }).show()
+    }
+    log(`手机访问服务已开启,地址 ${url}(口令见通知/托盘菜单)`)
+  } catch (err) {
+    mobile = null
+    log(`手机访问开启失败: ${err.message}`)
+    refreshTrayMenu()
+  }
+}
+
+async function stopMobile() {
+  if (!mobile) return
+  const handle = mobile
+  mobile = null
+  try { await handle.close() } catch { /* ignore */ }
+  writeMobileSettings({ ...readMobileSettings(), enabled: false })
+  refreshTrayMenu()
+  log('手机访问服务已关闭')
+}
+
+function showMobileInfo() {
+  if (!mobile) {
+    dialog.showMessageBox({
+      type: 'info',
+      title: '手机访问',
+      message: '手机访问未开启',
+      detail: '请先在托盘菜单(右下角鲸鱼图标)点击"开启手机访问"。'
+    })
+    return
+  }
+  const settings = readMobileSettings()
+  const url = `http://${mobileProxy.lanAddresses()[0] || '127.0.0.1'}:${mobile.port}`
+  clipboard.writeText(`${url}\n口令: ${settings.token}`)
+  dialog.showMessageBox({
+    type: 'info',
+    title: '手机访问地址与口令',
+    message: `地址: ${url}`,
+    detail: `口令: ${settings.token}\n\n已复制到剪贴板。\n手机连接同一 Wi-Fi 后,打开浏览器访问上面的地址,输入口令即可使用;浏览器菜单选"添加到主屏幕"可像 App 一样使用。`
+  })
+}
+
+// ---------------------------------------------------------------------------
 // 启动 harness 服务
 // ---------------------------------------------------------------------------
 
@@ -309,6 +422,8 @@ if (!gotLock) {
       try {
         await startHarness()
         createMainWindow()
+        ensureTray()
+        if (readMobileSettings().enabled === true) startMobile()
       } catch (err) {
         log(`启动失败: ${err.message}`)
         if (loadingWindow && !loadingWindow.isDestroyed()) loadingWindow.close()
@@ -335,6 +450,9 @@ if (!gotLock) {
   })
 
   app.on('before-quit', killServerTree)
+  app.on('before-quit', () => {
+    if (mobile) { mobile.close().catch(() => {}) }
+  })
   app.on('window-all-closed', () => {
     killServerTree()
     app.quit()
