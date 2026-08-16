@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>DSH 本地版</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:-apple-system,'Microsoft YaHei',sans-serif; background:#0b1320; color:#e8eef7;
+         height:100vh; height:100dvh; display:flex; flex-direction:column; }
+  #bar { padding:10px 14px; font-size:13px; color:#93a7c4; border-bottom:1px solid #1e3248;
+         display:flex; justify-content:space-between; align-items:center; }
+  #bar button { background:none; border:1px solid #27405f; color:#b8c7dd; border-radius:8px; padding:5px 10px; }
+  #msgs { flex:1; overflow-y:auto; padding:14px; display:flex; flex-direction:column; gap:10px; }
+  .msg { max-width:86%; padding:10px 13px; border-radius:14px; font-size:15px; line-height:1.6;
+         white-space:pre-wrap; word-break:break-word; }
+  .user { align-self:flex-end; background:#2563eb; color:#fff; border-bottom-right-radius:4px; }
+  .bot  { align-self:flex-start; background:#16233a; border-bottom-left-radius:4px; }
+  .tool { align-self:center; font-size:12px; color:#7d95b8; background:#101b2c;
+          border:1px solid #1e3248; border-radius:10px; padding:6px 10px; max-width:94%; }
+  #inputbar { display:flex; gap:8px; padding:10px 12px; border-top:1px solid #1e3248; }
+  #input { flex:1; background:#0a111d; border:1px solid #27405f; border-radius:10px; color:#e8eef7;
+           padding:11px 13px; font-size:15px; outline:none; }
+  #send { background:#2563eb; border:none; color:#fff; border-radius:10px; padding:0 18px; font-size:15px; }
+  #send:disabled { opacity:.5; }
+</style>
+</head>
+<body>
+  <div id="bar"><span id="rootinfo"></span><button onclick="goSetup()">设置</button></div>
+  <div id="msgs"></div>
+  <div id="inputbar">
+    <input id="input" placeholder="输入任务,例如:帮我读 笔记.txt 并加上今天的日期" autocomplete="off">
+    <button id="send" onclick="send()">发送</button>
+  </div>
+  <script>
+    const state = window.dsh.getState()
+    document.getElementById('rootinfo').textContent = '工作目录: ' + (state.rootName || '(未选择,使用应用私有目录)')
+
+    function add(kind, text) {
+      const div = document.createElement('div')
+      div.className = kind
+      div.textContent = text
+      document.getElementById('msgs').appendChild(div)
+      document.getElementById('msgs').scrollTop = 999999
+      return div
+    }
+
+    function goSetup() { window.dsh.goSetup() }
+
+    function send() {
+      const input = document.getElementById('input')
+      const text = input.value.trim()
+      if (!text) return
+      input.value = ''
+      add('user', text)
+      const btn = document.getElementById('send')
+      btn.disabled = true
+      const thinking = add('bot', '思考中...')
+      try {
+        const result = window.dsh.chat(text)
+        thinking.remove()
+        const data = JSON.parse(result)
+        for (const m of data.messages) {
+          if (m.role === 'assistant' && m.content) add('bot', m.content)
+          if (m.role === 'tool') {
+            let label = '工具: ' + m.name
+            try { const r = JSON.parse(m.content); if (r.summary) label += ' → ' + r.summary } catch(e) {}
+            add('tool', label)
+          }
+        }
+      } catch (e) {
+        thinking.remove()
+        add('tool', '出错了: ' + e.message)
+      }
+      btn.disabled = false
+    }
+
+    document.getElementById('input').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') send()
+    })
+    add('bot', '你好!我是本机 AI 助手,可以帮你读写手机上的文件。直接告诉我你想做什么。')
+  </script>
+</body>
+</html>
