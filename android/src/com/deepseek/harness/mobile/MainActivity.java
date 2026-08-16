@@ -136,10 +136,21 @@ public class MainActivity extends Activity {
             showWeb(url);
         });
 
+        Button local = new Button(this);
+        local.setText("本机模式 (127.0.0.1:3080)");
+        local.setTextSize(14);
+        local.setAllCaps(false);
+        local.setAlpha(0.9f);
+        local.setOnClickListener(v -> {
+            prefs().edit().putString(KEY_URL, "http://127.0.0.1:3080").apply();
+            showWeb("http://127.0.0.1:3080");
+        });
+
         ll.addView(title, lp(0));
         ll.addView(tip, lp(dp(10)));
         ll.addView(urlInput, lp(dp(18)));
         ll.addView(connect, lp(dp(18)));
+        ll.addView(local, lp(dp(8)));
         return ll;
     }
 
