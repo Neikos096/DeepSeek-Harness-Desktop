@@ -21,3 +21,7 @@ resources/runtime/
 Thumbs.db
 Desktop.ini
 .DS_Store
+
+# 安卓构建产物与签名密钥
+android/build/
+android/debug.keystore
