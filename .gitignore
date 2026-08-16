@@ -25,3 +25,6 @@ Desktop.ini
 # 安卓构建产物与签名密钥
 android/build/
 android/debug.keystore
+android-local/build/
+android-local/debug.keystore
+*.idsig
