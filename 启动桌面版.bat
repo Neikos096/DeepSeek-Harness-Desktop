@@ -1,16 +1,9 @@
 @echo off
-cd /d "%~dp0"
-where node >nul 2>nul
-if errorlevel 1 (
-  echo [ERROR] Node.js not found. Please install Node.js 22.19+ or 24+:
-  echo https://nodejs.org/
-  pause
-  exit /b 1
-)
-if not exist "node_modules\electron" (
-  echo [ERROR] Desktop dependencies missing. Run install-deps.bat first.
-  pause
-  exit /b 1
-)
-echo Starting DeepSeek Harness Desktop ...
-call npx.cmd electron .
+setlocal EnableExtensions
+
+set "DSH_LAUNCHER=%~dp0启动桌面版.vbs"
+set "DSH_ICON=%~dp0assets\icon.ico"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "$desktop=[Environment]::GetFolderPath('Desktop'); $link=Join-Path $desktop 'DeepSeek Harness 桌面版.lnk'; $shortcut=(New-Object -ComObject WScript.Shell).CreateShortcut($link); $shortcut.TargetPath=Join-Path $env:SystemRoot 'System32\wscript.exe'; $shortcut.Arguments=('\"{0}\"' -f $env:DSH_LAUNCHER); $shortcut.WorkingDirectory=Split-Path -Parent $env:DSH_LAUNCHER; if (Test-Path $env:DSH_ICON) { $shortcut.IconLocation=($env:DSH_ICON + ',0') }; $shortcut.Description='启动 DeepSeek Harness 桌面版'; $shortcut.Save()" >nul 2>nul
+
+start "" /b wscript.exe "%DSH_LAUNCHER%"
+exit /b
