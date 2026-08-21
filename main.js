@@ -430,6 +430,7 @@ if (!gotLock) {
 
   app.whenReady().then(async () => {
     ipcMain.on('quit', () => app.quit())
+    credentials.migrateIfNeeded()
 
     const bootApp = async () => {
       bootStarted = true
