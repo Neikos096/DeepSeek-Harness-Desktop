@@ -23,6 +23,8 @@ let mainWindow = null
 let loadingWindow = null
 let loginWindow = null
 let bootStarted = false
+let quitting = false
+let harnessReady = false
 let logs = []
 let tray = null
 let mobile = null
@@ -375,21 +377,27 @@ async function startHarness() {
   serverProc.stderr.on('data', (d) => log(String(d).trimEnd()))
   serverProc.on('exit', (code, signal) => {
     log(`harness 服务已退出 (code=${code}, signal=${signal})`)
+    if (!quitting && harnessReady) {
+      showFatalError('harness 服务已退出',
+        `后台服务进程意外结束(退出码 ${code})。\n\n最近日志:\n${logs.slice(-20).join('\n')}\n\n应用将关闭,请重新启动。`)
+    }
     if (mainWindow && !mainWindow.isDestroyed()) mainWindow.close()
     if (!mainWindow) app.quit()
     serverProc = null
   })
 
   // 等待服务就绪
+  const proc = serverProc
   const deadline = Date.now() + 120000
   while (Date.now() < deadline) {
-    if (serverProc.exitCode !== null) {
-      throw new Error(`harness 服务启动失败,已退出(代码 ${serverProc.exitCode})。\n\n${logs.slice(-30).join('\n')}`)
+    if (proc.exitCode !== null) {
+      throw new Error(`harness 服务启动失败,进程已退出(代码 ${proc.exitCode})。\n\n${logs.slice(-30).join('\n')}`)
     }
     try {
       const res = await fetch(`http://${HOST}:${serverPort}/`)
       if (res.ok) {
         log('harness 服务已就绪,正在打开界面 ...')
+        harnessReady = true
         return
       }
     } catch { /* 尚未就绪 */ }
@@ -401,6 +409,13 @@ async function startHarness() {
 // ---------------------------------------------------------------------------
 // 应用生命周期
 // ---------------------------------------------------------------------------
+
+process.on('uncaughtException', (err) => {
+  try {
+    console.error('未捕获异常:', err)
+    showFatalError('程序遇到错误', String((err && err.stack) || err))
+  } catch { /* ignore */ }
+})
 
 const gotLock = app.requestSingleInstanceLock()
 if (!gotLock) {
@@ -449,7 +464,10 @@ if (!gotLock) {
     }
   })
 
-  app.on('before-quit', killServerTree)
+  app.on('before-quit', () => {
+    quitting = true
+    killServerTree()
+  })
   app.on('before-quit', () => {
     if (mobile) { mobile.close().catch(() => {}) }
   })
