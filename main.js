@@ -362,9 +362,10 @@ async function startHarness() {
     fs.mkdirSync(rt.cwd, { recursive: true })
   }
 
+  const baseArgs = ['web', '--host', HOST, '--port', String(serverPort), '--no-open']
   const args = rt.packaged
-    ? [rt.cli, 'web', '--host', HOST, '--port', String(serverPort)]
-    : ['--import', 'tsx/esm', rt.cli, 'web', '--host', HOST, '--port', String(serverPort)]
+    ? [rt.cli, ...baseArgs]
+    : ['--import', 'tsx/esm', rt.cli, ...baseArgs]
 
   serverProc = spawn(rt.node, args, {
     cwd: rt.cwd,
