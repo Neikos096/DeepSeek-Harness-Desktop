@@ -4,7 +4,7 @@
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 $nodeVersion = '24.16.0'
-$dshVersion = '0.1.0-rc.6'
+$dshVersion = '0.1.1-rc.1'
 $mirror = 'https://npmmirror.com/mirrors'
 $npmRegistry = 'https://registry.npmmirror.com'
 
@@ -30,12 +30,14 @@ if (-not (Test-Path $nodeExe)) {
 # 2. 编译好的 harness 运行时(官方 npm 发布包)
 $runtimeDir = Join-Path $root 'resources\runtime'
 $cli = Join-Path $runtimeDir 'node_modules\@deepseek-ai\dsh\lib\bin.js'
-if (-not (Test-Path $cli)) {
+$pkgJson = Join-Path $runtimeDir 'node_modules\@deepseek-ai\dsh\package.json'
+$installedVersion = if (Test-Path $pkgJson) { (Get-Content $pkgJson -Raw | ConvertFrom-Json).version } else { $null }
+if ($installedVersion -ne $dshVersion) {
   Write-Host "[2/3] 安装 harness 运行时 @deepseek-ai/dsh@$dshVersion ..."
   New-Item -ItemType Directory -Force -Path $runtimeDir | Out-Null
   npm install "@deepseek-ai/dsh@$dshVersion" --prefix $runtimeDir --registry $npmRegistry --no-audit --no-fund
 } else {
-  Write-Host "[2/3] harness 运行时已存在,跳过安装"
+  Write-Host "[2/3] harness 运行时已是 $dshVersion,跳过安装"
 }
 
 if (-not (Test-Path $cli)) {
